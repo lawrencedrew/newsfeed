@@ -27,6 +27,7 @@ async function pollRss(urls, store, source = 'rss') {
 }
 
 async function pollNitter(config, store) {
+  if (!config?.accounts?.length || !config.instance) return;
   const urls = config.accounts.map(
     account => `${config.instance}/${account}/rss`
   );

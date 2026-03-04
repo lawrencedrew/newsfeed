@@ -17,10 +17,10 @@ class Store {
     }
     if (this.items.length > this.maxItems) {
       const removed = this.items.pop();
-      this.seen.delete(removed.id);
       if (removed.id === item.id) return true; // evicted immediately, skip notify
+      this.seen.delete(removed.id);
     }
-    this.listeners.forEach(fn => fn(item));
+    this.listeners.forEach(fn => { try { fn(item); } catch {} });
     return true;
   }
 

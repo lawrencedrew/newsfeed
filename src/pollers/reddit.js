@@ -23,6 +23,7 @@ async function pollReddit(subreddits, store) {
         `https://www.reddit.com/r/${sub}/new.json?limit=25`,
         { headers: { 'User-Agent': 'newsfeed-terminal/1.0' } }
       );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       for (const child of (json.data?.children || [])) {
         store.add(normaliseRedditItem(child));

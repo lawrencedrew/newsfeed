@@ -14,9 +14,12 @@ function normaliseHnItem(raw) {
 }
 
 async function pollHn(config, store) {
+  if (!config?.feed) return;
+  const limit = Math.min(config.limit || 30, 100);
   try {
     const res = await fetch(`${HN_API}/${config.feed}stories.json`);
-    const ids = (await res.json()).slice(0, config.limit);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const ids = (await res.json()).slice(0, limit);
     await Promise.all(ids.map(async id => {
       try {
         const r = await fetch(`${HN_API}/item/${id}.json`);
