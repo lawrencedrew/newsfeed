@@ -21,6 +21,10 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // --- Breaking bar ---
+function isBreaking(item) {
+  return item.breaking || (item.title && item.title.toLowerCase().includes('breaking'));
+}
+
 let breakingItems = [];
 let breakingIdx = 0;
 function rotateBreaking() {
@@ -42,7 +46,7 @@ es.onmessage = e => {
     renderFeed();
   } else if (msg.type === 'item') {
     state.items.unshift(msg.item);
-    if (msg.item.breaking) { breakingItems.unshift(msg.item); rotateBreaking(); }
+    if (isBreaking(msg.item)) { breakingItems.unshift(msg.item); rotateBreaking(); }
     applyFilter();
     renderFeed();
   }
@@ -89,11 +93,11 @@ function tagClass(source) {
 
 function renderFeed() {
   feed.innerHTML = '';
-  breakingItems = state.filtered.filter(i => i.breaking);
+  breakingItems = state.filtered.filter(isBreaking);
 
   state.filtered.forEach((item, idx) => {
     const el = document.createElement('div');
-    el.className = 'feed-item' + (item.breaking ? ' breaking' : '') + (idx === state.selected ? ' selected' : '');
+    el.className = 'feed-item' + (isBreaking(item) ? ' breaking' : '') + (idx === state.selected ? ' selected' : '');
     el.innerHTML = `
       <span class="item-tag ${tagClass(item.source)}">${escHtml(item.tag)}</span>
       <span class="item-title">${escHtml(item.title)}</span>
