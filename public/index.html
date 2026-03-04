@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEWSFEED</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <span id="title">NEWSFEED</span>
+      <span id="ticker-wrap"><span id="ticker"></span></span>
+      <span id="clock"></span>
+    </header>
+
+    <div id="breaking-bar" class="hidden">
+      <span class="label-breaking">[LIVE]</span>
+      <span id="breaking-text"></span>
+    </div>
+
+    <div id="main">
+      <aside id="sidebar">
+        <div class="sidebar-section">SOURCES</div>
+        <label class="source-toggle" data-source="rss">
+          <span class="dot rss">&#9632;</span> RSS
+        </label>
+        <label class="source-toggle" data-source="hn">
+          <span class="dot hn">&#9632;</span> HN
+        </label>
+        <label class="source-toggle" data-source="reddit">
+          <span class="dot reddit">&#9632;</span> Reddit
+        </label>
+        <label class="source-toggle" data-source="nitter">
+          <span class="dot nitter">&#9632;</span> Nitter
+        </label>
+        <div class="sidebar-section">FILTER</div>
+        <input id="filter" type="text" placeholder="search..." autocomplete="off" />
+      </aside>
+
+      <div id="feed-panel">
+        <div id="feed"></div>
+      </div>
+
+      <div id="preview-panel">
+        <div id="preview-content">
+          <span class="hint">j/k navigate · Enter preview · o open · f filter · r refresh</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
