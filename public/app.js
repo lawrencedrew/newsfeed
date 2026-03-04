@@ -39,7 +39,8 @@ setInterval(rotateBreaking, 5000);
 // --- SSE ---
 const es = new EventSource('/stream');
 es.onmessage = e => {
-  const msg = JSON.parse(e.data);
+  let msg;
+  try { msg = JSON.parse(e.data); } catch { return; }
   if (msg.type === 'snapshot') {
     state.items = msg.items;
     applyFilter();
@@ -50,6 +51,9 @@ es.onmessage = e => {
     applyFilter();
     renderFeed();
   }
+};
+es.onerror = () => {
+  preview.innerHTML = '<span class="hint" style="color:#ff4500">Connection lost — server may be down. Reconnecting…</span>';
 };
 
 // --- Filter ---
@@ -84,6 +88,7 @@ document.querySelectorAll('.source-toggle').forEach(el => {
 // --- Render ---
 function formatTime(ts) {
   const d = new Date(ts);
+  if (isNaN(d)) return '??:??';
   return d.toUTCString().slice(17, 22);
 }
 
@@ -110,6 +115,7 @@ function renderFeed() {
 
   const sel = feed.querySelector('.selected');
   if (sel) sel.scrollIntoView({ block: 'nearest' });
+  rotateBreaking();
   showPreview(state.filtered[state.selected]);
 }
 
@@ -154,7 +160,7 @@ document.addEventListener('keydown', e => {
       break;
     case 'o': {
       const item = state.filtered[state.selected];
-      if (item) window.open(item.url, '_blank');
+      if (item && /^https?:\/\//i.test(item.url)) window.open(item.url, '_blank');
       break;
     }
     case 'f':
