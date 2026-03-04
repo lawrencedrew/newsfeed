@@ -9,7 +9,6 @@ class Store {
   add(item) {
     if (this.seen.has(item.id)) return false;
     this.seen.add(item.id);
-    // Insert in reverse-chronological order
     const idx = this.items.findIndex(i => i.timestamp <= item.timestamp);
     if (idx === -1) {
       this.items.push(item);
@@ -19,6 +18,7 @@ class Store {
     if (this.items.length > this.maxItems) {
       const removed = this.items.pop();
       this.seen.delete(removed.id);
+      if (removed.id === item.id) return true; // evicted immediately, skip notify
     }
     this.listeners.forEach(fn => fn(item));
     return true;
@@ -30,6 +30,9 @@ class Store {
 
   onNew(fn) {
     this.listeners.push(fn);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== fn);
+    };
   }
 }
 
