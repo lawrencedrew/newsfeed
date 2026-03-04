@@ -8,7 +8,6 @@ const { pollReddit } = require('./src/pollers/reddit');
 const config = loadConfig();
 const store = new Store(config.maxItems);
 const app = express();
-const clients = new Set();
 
 // --- SSE endpoint ---
 app.get('/stream', (req, res) => {
@@ -23,10 +22,8 @@ app.get('/stream', (req, res) => {
 
   const send = item => res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
   const unsub = store.onNew(send);
-  clients.add(send);
 
   req.on('close', () => {
-    clients.delete(send);
     unsub();
   });
 });
