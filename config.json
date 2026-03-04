@@ -5,11 +5,11 @@
   "rss": [
     "https://feeds.bbci.co.uk/news/rss.xml",
     "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
-    "https://feeds.reuters.com/reuters/topNews"
+    "https://www.theguardian.com/world/rss"
   ],
   "reddit": ["worldnews", "technology", "geopolitics", "collapse"],
   "nitter": {
-    "instance": "https://nitter.poast.org",
+    "instance": "https://nitter.privacyredirect.com",
     "accounts": ["Reuters", "BreakingNews"]
   },
   "hackernews": {
