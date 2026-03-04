@@ -1,0 +1,19 @@
+{
+  "port": 3000,
+  "pollIntervalSecs": 60,
+  "maxItems": 500,
+  "rss": [
+    "https://feeds.bbci.co.uk/news/rss.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "https://feeds.reuters.com/reuters/topNews"
+  ],
+  "reddit": ["worldnews", "technology", "geopolitics", "collapse"],
+  "nitter": {
+    "instance": "https://nitter.poast.org",
+    "accounts": ["Reuters", "BreakingNews"]
+  },
+  "hackernews": {
+    "feed": "top",
+    "limit": 30
+  }
+}
