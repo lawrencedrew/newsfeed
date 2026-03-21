@@ -6,7 +6,6 @@ const { AlertsEngine } = require('./app/alerts/engine');
 const { pollRss, pollNitter } = require('./app/sources/rss');
 const { pollHn } = require('./app/sources/hn');
 const { pollReddit } = require('./app/sources/reddit');
-const { pollTelegram } = require('./app/sources/telegram');
 
 const config = loadConfig();
 const store = new Store(config.maxItems);
@@ -57,7 +56,6 @@ async function pollAll() {
     pollNitter(config.nitter, store),
     pollHn(config.hackernews, store),
     pollReddit(config.reddit, store),
-    pollTelegram(config.telegram, store),
   ]);
 }
 
