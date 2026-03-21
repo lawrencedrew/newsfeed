@@ -15,5 +15,9 @@
   "hackernews": {
     "feed": "top",
     "limit": 30
+  },
+  "telegram": {
+    "bridge": "https://rsshub.app/telegram/channel",
+    "channels": []
   }
 }
