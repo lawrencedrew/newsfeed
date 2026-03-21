@@ -1,12 +1,19 @@
 const express = require('express');
 const { loadConfig } = require('./app/ingest/config');
 const { Store } = require('./app/storage/store');
+const { ScoringEngine } = require('./app/scoring/engine');
 const { pollRss, pollNitter } = require('./app/sources/rss');
 const { pollHn } = require('./app/sources/hn');
 const { pollReddit } = require('./app/sources/reddit');
 
 const config = loadConfig();
 const store = new Store(config.maxItems);
+
+const scorer = new ScoringEngine({
+  watchwords: { 'BREAKING': 100 }
+});
+store.setScorer(scorer);
+
 const app = express();
 
 // --- SSE endpoint ---

@@ -8,6 +8,14 @@ class Store {
     this.items = [];
     this.seen = new Set();
     this.listeners = [];
+    this.scorer = null;
+  }
+
+  /**
+   * Optional scoring engine injection.
+   */
+  setScorer(engine) {
+    this.scorer = engine;
   }
 
   /**
@@ -16,14 +24,18 @@ class Store {
    */
   add(item) {
     if (!item.id || this.seen.has(item.id)) return false;
-    this.seen.add(item.id);
+
+    // Apply scoring if engine is present
+    const finalItem = this.scorer ? this.scorer.score(item) : item;
+
+    this.seen.add(finalItem.id);
 
     // Insert in reverse-chronological order (newest first)
-    const idx = this.items.findIndex(i => i.publishedAt <= item.publishedAt);
+    const idx = this.items.findIndex(i => i.publishedAt <= finalItem.publishedAt);
     if (idx === -1) {
-      this.items.push(item);
+      this.items.push(finalItem);
     } else {
-      this.items.splice(idx, 0, item);
+      this.items.splice(idx, 0, finalItem);
     }
 
     // Enforce capacity
@@ -32,7 +44,7 @@ class Store {
       this.seen.delete(removed.id);
     }
 
-    this.notify(item);
+    this.notify(finalItem);
     return true;
   }
 
@@ -53,6 +65,16 @@ class Store {
    */
   getAll() {
     return [...this.items];
+  }
+
+  /**
+   * Returns all items ranked by priority then by publishedAt.
+   */
+  getRanked() {
+    return [...this.items].sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority;
+      return b.publishedAt - a.publishedAt;
+    });
   }
 
   /**

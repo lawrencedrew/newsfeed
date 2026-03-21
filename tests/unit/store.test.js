@@ -66,3 +66,30 @@ test('notifies listeners on new items', () => {
   store.add(item);
   assert.strictEqual(received.id, 'test');
 });
+
+test('Store: getRanked returns items by priority then publishedAt', () => {
+  const store = new Store(10);
+  store.add({ id: 'low', publishedAt: new Date('2026-03-21T11:00:00Z'), priority: 1, title: 'Low' });
+  store.add({ id: 'high', publishedAt: new Date('2026-03-21T10:00:00Z'), priority: 10, title: 'High' });
+  store.add({ id: 'latest', publishedAt: new Date('2026-03-21T12:00:00Z'), priority: 1, title: 'Latest Low' });
+
+  const ranked = store.getRanked();
+  assert.strictEqual(ranked[0].id, 'high');
+  assert.strictEqual(ranked[1].id, 'latest');
+  assert.strictEqual(ranked[2].id, 'low');
+});
+
+test('Store: automatically scores items if scorer is set', () => {
+  const store = new Store(10);
+  const mockScorer = {
+    score: (item) => ({ ...item, priority: item.title.includes('!') ? 100 : 0 })
+  };
+  store.setScorer(mockScorer);
+
+  store.add({ id: '1', publishedAt: new Date(), title: 'Normal' });
+  store.add({ id: '2', publishedAt: new Date(), title: 'Important!' });
+
+  const ranked = store.getRanked();
+  assert.strictEqual(ranked[0].id, '2');
+  assert.strictEqual(ranked[0].priority, 100);
+});
