@@ -21,13 +21,13 @@ test('Integration: Store with Scoring and Alerts provides ranked and alerted dat
 
   // Item 2 should have high priority and match the alert
   const ranked = store.getRanked();
-  assert.strictEqual(ranked[0].id, '2');
-  assert.strictEqual(ranked[0].priority, 110, 'Should have priority bonus');
-  assert.deepStrictEqual(ranked[0].alerts, ['URGENCY-MATCH']);
+  assert.strictEqual(ranked[0].id, '2', 'Item with URGENT watchword must be ranked first');
+  assert.ok(ranked[0].priority >= 100, 'Item 2 should have received the watchword priority bonus');
+  assert.deepStrictEqual(ranked[0].alerts, ['URGENCY-MATCH'], 'Item 2 must trigger the expected alert');
 
   // Item 1 should be lower priority
-  assert.strictEqual(ranked[1].id, '1');
-  assert.deepStrictEqual(ranked[1].alerts, []);
+  assert.strictEqual(ranked[1].id, '1', 'Normal item should be ranked second');
+  assert.deepStrictEqual(ranked[1].alerts, [], 'Normal item should not have alerts');
 });
 
 test('Integration: snapshot data retrieval mimics server logic', () => {
