@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { test } = require('node:test');
-const { Store } = require('../src/store');
+const { Store } = require('../../app/storage/store');
 
 test('adds items and retrieves them in reverse-chron order', () => {
   const store = new Store(500);

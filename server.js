@@ -1,9 +1,9 @@
 const express = require('express');
-const { loadConfig } = require('./src/config');
-const { Store } = require('./src/store');
-const { pollRss, pollNitter } = require('./src/pollers/rss');
-const { pollHn } = require('./src/pollers/hn');
-const { pollReddit } = require('./src/pollers/reddit');
+const { loadConfig } = require('./app/ingest/config');
+const { Store } = require('./app/storage/store');
+const { pollRss, pollNitter } = require('./app/sources/rss');
+const { pollHn } = require('./app/sources/hn');
+const { pollReddit } = require('./app/sources/reddit');
 
 const config = loadConfig();
 const store = new Store(config.maxItems);
@@ -33,7 +33,7 @@ app.get('/refresh', async (req, res) => {
   res.json({ ok: true });
 });
 
-app.use(express.static('public'));
+app.use(express.static('app/tui'));
 
 // --- Polling ---
 async function pollAll() {

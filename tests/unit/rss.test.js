@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { test } = require('node:test');
-const { normaliseRssItem } = require('../src/pollers/rss');
+const { normaliseRssItem } = require('../../app/sources/rss');
 
 test('normalises rss item to feed item shape', () => {
   const raw = {

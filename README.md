@@ -49,25 +49,25 @@ Example:
 }
 ```
 
-## Keyboard shortcuts
+## Architecture
 
-| Key | Action |
-|---|---|
-| `j` / `k` | Navigate down / up |
-| `Enter` | Open inline preview for selected item |
-| `o` | Open selected item in browser |
-| `f` | Filter / search items |
-| `r` | Refresh feed manually |
-| `1` | Toggle RSS source |
-| `2` | Toggle Hacker News source |
-| `3` | Toggle Reddit source |
-| `4` | Toggle Nitter source |
+RetroFeed is designed with modularity and testability in mind.
 
-## Sources
+- **app/tui**: Terminal UI components (currently web-based).
+- **app/ingest**: Data ingestion orchestration and configuration.
+- **app/sources**: Adapters for various news and data sources (RSS, HN, Reddit).
+- **app/models**: Core data structures and types.
+- **app/storage**: In-memory or persistent data stores.
+- **app/scoring**: Logic for ranking and filtering content.
+- **app/alerts**: Notifications and threshold-based triggers.
+- **tests/unit**: Isolated logic tests.
+- **tests/integration**: Cross-module workflow tests.
 
-- **RSS/Atom** — any standard RSS or Atom feed URL
-- **Hacker News** — top, new, or best stories via the official HN API
-- **Reddit** — subreddit listings via the public JSON API
-- **Nitter** — Twitter/X accounts via a self-hosted or public Nitter instance
+## Quality Gates
 
-No API keys or accounts are needed for any source.
+Run these commands to verify code quality:
+
+```bash
+npm test        # Run unit tests
+npm run lint    # Run ESLint
+```

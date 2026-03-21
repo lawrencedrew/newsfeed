@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { test } = require('node:test');
-const { normaliseHnItem } = require('../src/pollers/hn');
+const { normaliseHnItem } = require('../../app/sources/hn');
 
 test('normalises HN item', () => {
   const raw = { id: 12345, title: 'Show HN: Cool thing', url: 'https://cool.com', score: 342, descendants: 88, time: 1700000000 };

@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { test } = require('node:test');
-const { normaliseRedditItem } = require('../src/pollers/reddit');
+const { normaliseRedditItem } = require('../../app/sources/reddit');
 
 test('normalises reddit item', () => {
   const raw = {
