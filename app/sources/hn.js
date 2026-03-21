@@ -1,37 +1,53 @@
+const BaseAdapter = require('./base');
+const { createItem } = require('../models/item');
+
 const HN_API = 'https://hacker-news.firebaseio.com/v0';
 
-function normaliseHnItem(raw) {
-  return {
-    id: `hn-${raw.id}`,
-    source: 'hn',
-    tag: '[HN]',
-    title: raw.title || '',
-    url: raw.url || `https://news.ycombinator.com/item?id=${raw.id}`,
-    timestamp: raw.time ? new Date(raw.time * 1000) : new Date(),
-    meta: `▲${raw.score || 0} · ${raw.descendants || 0} comments`,
-    breaking: false,
-  };
-}
+class HnAdapter extends BaseAdapter {
+  constructor(options = {}) {
+    super({ name: 'Hacker News', type: 'hn', ...options });
+    this.feed = options.config?.feed || 'top';
+    this.limit = Math.min(options.config?.limit || 30, 100);
+  }
 
-async function pollHn(config, store) {
-  if (!config?.feed) return;
-  const limit = Math.min(config.limit || 30, 100);
-  try {
-    const res = await fetch(`${HN_API}/${config.feed}stories.json`);
+  async fetch() {
+    const res = await fetch(`${HN_API}/${this.feed}stories.json`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const ids = (await res.json()).slice(0, limit);
-    await Promise.all(ids.map(async id => {
+    const ids = (await res.json()).slice(0, this.limit);
+
+    const items = await Promise.all(ids.map(async id => {
       try {
         const r = await fetch(`${HN_API}/item/${id}.json`);
-        const item = await r.json();
-        if (item && item.type === 'story' && item.title) {
-          store.add(normaliseHnItem(item));
-        }
-      } catch {}
+        return await r.json();
+      } catch (e) {
+        return null;
+      }
     }));
-  } catch (e) {
-    console.error(`[hn] fetch failed: ${e.message}`);
+
+    return items.filter(item => item && item.type === 'story' && item.title);
+  }
+
+  normalize(raw) {
+    return createItem({
+      id: `hn-${raw.id}`,
+      sourceType: this.type,
+      sourceName: this.name,
+      title: raw.title || '',
+      url: raw.url || `https://news.ycombinator.com/item?id=${raw.id}`,
+      publishedAt: raw.time ? new Date(raw.time * 1000) : null,
+      priority: (raw.score || 0) > 100 ? 1 : 0,
+      raw: raw
+    });
   }
 }
 
-module.exports = { normaliseHnItem, pollHn };
+/**
+ * Legacy wrapper for server.js
+ */
+async function pollHn(config, store) {
+  const adapter = new HnAdapter({ config });
+  const items = await adapter.poll();
+  items.forEach(item => store.add(item));
+}
+
+module.exports = { HnAdapter, pollHn };

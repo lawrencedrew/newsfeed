@@ -22,7 +22,7 @@ updateClock();
 
 // --- Breaking bar ---
 function isBreaking(item) {
-  return item.breaking || (item.title && item.title.toLowerCase().includes('breaking'));
+  return item.priority > 0 || (item.title && item.title.toLowerCase().includes('breaking'));
 }
 
 let breakingItems = [];
@@ -31,7 +31,7 @@ function rotateBreaking() {
   if (!breakingItems.length) { breakingBar.classList.add('hidden'); return; }
   breakingBar.classList.remove('hidden');
   const item = breakingItems[breakingIdx % breakingItems.length];
-  breakingText.textContent = `${item.title} · ${item.meta || ''}`;
+  breakingText.textContent = `${item.title} · ${item.sourceName || ''}`;
   breakingIdx++;
 }
 setInterval(rotateBreaking, 5000);
@@ -60,9 +60,9 @@ es.onerror = () => {
 function applyFilter() {
   const q = state.filter.toLowerCase();
   state.filtered = state.items.filter(item => {
-    if (state.hidden.has(item.source)) return false;
+    if (state.hidden.has(item.sourceType)) return false;
     if (!q) return true;
-    return item.title.toLowerCase().includes(q) || (item.meta || '').toLowerCase().includes(q);
+    return item.title.toLowerCase().includes(q) || (item.sourceName || '').toLowerCase().includes(q);
   });
 }
 
@@ -92,8 +92,8 @@ function formatTime(ts) {
   return d.toUTCString().slice(17, 22);
 }
 
-function tagClass(source) {
-  return { rss: 'rss', hn: 'hn', reddit: 'reddit', nitter: 'nitter' }[source] || 'rss';
+function tagClass(sourceType) {
+  return { rss: 'rss', hn: 'hn', reddit: 'reddit', nitter: 'nitter' }[sourceType] || 'rss';
 }
 
 function renderFeed() {
@@ -103,11 +103,12 @@ function renderFeed() {
   state.filtered.forEach((item, idx) => {
     const el = document.createElement('div');
     el.className = 'feed-item' + (isBreaking(item) ? ' breaking' : '') + (idx === state.selected ? ' selected' : '');
+    const meta = (item.topics && item.topics.length) ? `r/${item.topics[0]}` : '';
     el.innerHTML = `
-      <span class="item-tag ${tagClass(item.source)}">${escHtml(item.tag)}</span>
+      <span class="item-tag ${tagClass(item.sourceType)}">${escHtml(item.sourceName)}</span>
       <span class="item-title">${escHtml(item.title)}</span>
-      <span class="item-meta">${escHtml(item.meta || '')}</span>
-      <span class="item-time">${formatTime(item.timestamp)}</span>
+      <span class="item-meta">${escHtml(meta)}</span>
+      <span class="item-time">${formatTime(item.publishedAt)}</span>
     `;
     el.addEventListener('click', () => { state.selected = idx; renderFeed(); showPreview(item); });
     feed.appendChild(el);
@@ -124,9 +125,10 @@ function showPreview(item) {
     preview.innerHTML = '<span class="hint">j/k navigate · Enter preview · o open · f filter · r refresh</span>';
     return;
   }
+  const meta = (item.topics && item.topics.length) ? `r/${item.topics[0]}` : '';
   preview.innerHTML = `
     <h2>${escHtml(item.title)}</h2>
-    <div class="preview-meta">${escHtml(item.tag)} · ${formatTime(item.timestamp)} · ${escHtml(item.meta || '')}</div>
+    <div class="preview-meta">${escHtml(item.sourceName)} · ${formatTime(item.publishedAt)} · ${escHtml(meta)}</div>
     <div class="preview-url">${escHtml(item.url)}</div>
     <div class="open-hint">Press <b>o</b> to open in browser</div>
   `;

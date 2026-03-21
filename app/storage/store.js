@@ -9,7 +9,7 @@ class Store {
   add(item) {
     if (this.seen.has(item.id)) return false;
     this.seen.add(item.id);
-    const idx = this.items.findIndex(i => i.timestamp <= item.timestamp);
+    const idx = this.items.findIndex(i => i.publishedAt <= item.publishedAt);
     if (idx === -1) {
       this.items.push(item);
     } else {

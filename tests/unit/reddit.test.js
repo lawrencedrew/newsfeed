@@ -1,30 +1,31 @@
 const assert = require('assert');
 const { test } = require('node:test');
-const { normaliseRedditItem } = require('../../app/sources/reddit');
+const { RedditAdapter } = require('../../app/sources/reddit');
 
-test('normalises reddit item', () => {
+test('RedditAdapter: normalizes reddit item to canonical shape', () => {
+  const adapter = new RedditAdapter({ name: 'r/worldnews', config: { subreddit: 'worldnews' } });
   const raw = {
-    data: {
-      id: 'abc123',
-      title: 'Big news from somewhere',
-      url: 'https://example.com',
-      score: 1234,
-      subreddit: 'worldnews',
-      created_utc: 1700000000,
-    }
+    id: 'abc123',
+    title: 'Big news from somewhere',
+    url: 'https://example.com',
+    score: 1234,
+    subreddit: 'worldnews',
+    created_utc: 1700000000,
   };
-  const item = normaliseRedditItem(raw);
-  assert.strictEqual(item.source, 'reddit');
-  assert.strictEqual(item.tag, '[RED]');
+  const item = adapter.normalize(raw);
+
+  assert.strictEqual(item.sourceType, 'reddit');
+  assert.strictEqual(item.sourceName, 'r/worldnews');
   assert.strictEqual(item.id, 'red-abc123');
-  assert.ok(item.meta.includes('1.2k'));
-  assert.ok(item.meta.includes('worldnews'));
+  assert.strictEqual(item.title, 'Big news from somewhere');
+  assert.deepStrictEqual(item.topics, ['worldnews']);
+  assert.strictEqual(item.priority, 1, 'score > 500 should have priority 1');
+  assert.deepStrictEqual(item.raw, raw);
 });
 
-test('marks item as breaking if title contains breaking', () => {
-  const raw = {
-    data: { id: 'z', title: 'BREAKING: something happened', url: 'https://x.com', score: 0, subreddit: 'news', created_utc: 1700000000 }
-  };
-  const item = normaliseRedditItem(raw);
-  assert.strictEqual(item.breaking, true);
+test('RedditAdapter: handles missing subreddit in URL fallback', () => {
+  const adapter = new RedditAdapter();
+  const raw = { id: 'z', title: 'something', subreddit: 'news', created_utc: 1700000000 };
+  const item = adapter.normalize(raw);
+  assert.ok(item.url.includes('/r/news/'));
 });
