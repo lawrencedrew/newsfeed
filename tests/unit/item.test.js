@@ -18,6 +18,7 @@ test('createItem: valid construction with full data', () => {
     priority: 5,
     sentiment: 0.8,
     duplicateGroup: 'dupe-abc',
+    alerts: ['test-alert'],
     raw: { original: 'payload' }
   };
 
@@ -39,6 +40,7 @@ test('createItem: valid construction with full data', () => {
   assert.strictEqual(item.priority, 5);
   assert.strictEqual(item.sentiment, 0.8);
   assert.strictEqual(item.duplicateGroup, 'dupe-abc');
+  assert.deepStrictEqual(item.alerts, ['test-alert']);
   assert.deepStrictEqual(item.raw, { original: 'payload' });
 });
 
@@ -54,6 +56,7 @@ test('createItem: handles missing optional fields with defaults', () => {
   assert.strictEqual(item.priority, 0);
   assert.strictEqual(item.sentiment, 0);
   assert.strictEqual(item.duplicateGroup, null);
+  assert.deepStrictEqual(item.alerts, []);
   assert.deepStrictEqual(item.raw, {});
   assert.ok(item.publishedAt instanceof Date);
   assert.ok(item.ingestedAt instanceof Date);

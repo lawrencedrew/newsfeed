@@ -32,6 +32,7 @@ function createItem(data = {}) {
     priority: typeof data.priority === 'number' ? data.priority : 0,
     sentiment: typeof data.sentiment === 'number' ? data.sentiment : 0,
     duplicateGroup: data.duplicateGroup ? String(data.duplicateGroup) : null,
+    alerts: Array.isArray(data.alerts) ? data.alerts : [],
     raw: data.raw && typeof data.raw === 'object' ? data.raw : {}
   };
 

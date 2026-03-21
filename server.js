@@ -2,6 +2,7 @@ const express = require('express');
 const { loadConfig } = require('./app/ingest/config');
 const { Store } = require('./app/storage/store');
 const { ScoringEngine } = require('./app/scoring/engine');
+const { AlertsEngine } = require('./app/alerts/engine');
 const { pollRss, pollNitter } = require('./app/sources/rss');
 const { pollHn } = require('./app/sources/hn');
 const { pollReddit } = require('./app/sources/reddit');
@@ -14,6 +15,11 @@ const scorer = new ScoringEngine({
 });
 store.setScorer(scorer);
 
+const alerts = new AlertsEngine([
+  { id: 'WATCHWORD MATCH', keywords: ['BREAKING'], minPriority: 10 }
+]);
+store.setAlertsEngine(alerts);
+
 const app = express();
 
 // --- SSE endpoint ---
@@ -23,8 +29,8 @@ app.get('/stream', (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  // Send all existing items on connect
-  const items = store.getAll();
+  // Send all existing items on connect (ranked by priority)
+  const items = store.getRanked();
   res.write(`data: ${JSON.stringify({ type: 'snapshot', items })}\n\n`);
 
   const send = item => res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);

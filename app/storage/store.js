@@ -1,3 +1,5 @@
+const { createItem } = require('../models/item');
+
 /**
  * In-memory storage for canonical items.
  * Enforces deduplication, ordering, and capacity limits.
@@ -9,6 +11,7 @@ class Store {
     this.seen = new Set();
     this.listeners = [];
     this.scorer = null;
+    this.alertsEngine = null;
   }
 
   /**
@@ -19,6 +22,13 @@ class Store {
   }
 
   /**
+   * Optional alerts engine injection.
+   */
+  setAlertsEngine(engine) {
+    this.alertsEngine = engine;
+  }
+
+  /**
    * Adds a single item to the store.
    * Returns true if the item was added, false if it was a duplicate.
    */
@@ -26,7 +36,16 @@ class Store {
     if (!item.id || this.seen.has(item.id)) return false;
 
     // Apply scoring if engine is present
-    const finalItem = this.scorer ? this.scorer.score(item) : item;
+    let finalItem = this.scorer ? this.scorer.score(item) : item;
+
+    // Apply alerts if engine is present
+    if (this.alertsEngine) {
+      const matches = this.alertsEngine.evaluate(finalItem);
+      if (matches.length > 0) {
+        // Create new item with alerts attached
+        finalItem = createItem({ ...finalItem, alerts: matches, raw: finalItem.raw });
+      }
+    }
 
     this.seen.add(finalItem.id);
 

@@ -22,7 +22,7 @@ updateClock();
 
 // --- Breaking bar ---
 function isBreaking(item) {
-  return item.priority > 0 || (item.title && item.title.toLowerCase().includes('breaking'));
+  return item.priority > 50 || (item.alerts && item.alerts.length > 0) || (item.title && item.title.toLowerCase().includes('breaking'));
 }
 
 let breakingItems = [];
@@ -31,7 +31,8 @@ function rotateBreaking() {
   if (!breakingItems.length) { breakingBar.classList.add('hidden'); return; }
   breakingBar.classList.remove('hidden');
   const item = breakingItems[breakingIdx % breakingItems.length];
-  breakingText.textContent = `${item.title} · ${item.sourceName || ''}`;
+  const alertTag = (item.alerts && item.alerts.length > 0) ? `[ALERT: ${item.alerts.join(',')}] ` : '';
+  breakingText.textContent = `${alertTag}${item.title} · ${item.sourceName || ''}`;
   breakingIdx++;
 }
 setInterval(rotateBreaking, 5000);
@@ -104,10 +105,12 @@ function renderFeed() {
     const el = document.createElement('div');
     el.className = 'feed-item' + (isBreaking(item) ? ' breaking' : '') + (idx === state.selected ? ' selected' : '');
     const meta = (item.topics && item.topics.length) ? `r/${item.topics[0]}` : '';
+    const alertTag = (item.alerts && item.alerts.length > 0) ? '<span style="color:#ff4500">[!]</span> ' : '';
     el.innerHTML = `
       <span class="item-tag ${tagClass(item.sourceType)}">${escHtml(item.sourceName)}</span>
+      ${alertTag}
       <span class="item-title">${escHtml(item.title)}</span>
-      <span class="item-meta">${escHtml(meta)}</span>
+      <span class="item-meta">${escHtml(meta)} (P:${item.priority})</span>
       <span class="item-time">${formatTime(item.publishedAt)}</span>
     `;
     el.addEventListener('click', () => { state.selected = idx; renderFeed(); showPreview(item); });
@@ -126,9 +129,14 @@ function showPreview(item) {
     return;
   }
   const meta = (item.topics && item.topics.length) ? `r/${item.topics[0]}` : '';
+  const alertSection = (item.alerts && item.alerts.length > 0) 
+    ? `<div class="alert-box" style="color:#ff4500; font-weight:bold; border:1px solid #ff4500; padding:4px; margin-bottom:8px">ALERT: ${item.alerts.join(', ')}</div>` 
+    : '';
+
   preview.innerHTML = `
+    ${alertSection}
     <h2>${escHtml(item.title)}</h2>
-    <div class="preview-meta">${escHtml(item.sourceName)} · ${formatTime(item.publishedAt)} · ${escHtml(meta)}</div>
+    <div class="preview-meta">${escHtml(item.sourceName)} · ${formatTime(item.publishedAt)} · ${escHtml(meta)} (Priority: ${item.priority})</div>
     <div class="preview-url">${escHtml(item.url)}</div>
     <div class="open-hint">Press <b>o</b> to open in browser</div>
   `;
