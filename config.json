@@ -19,5 +19,8 @@
   "telegram": {
     "bridge": "https://rsshub.app/telegram/channel",
     "channels": []
+  },
+  "finance": {
+    "feeds": []
   }
 }
