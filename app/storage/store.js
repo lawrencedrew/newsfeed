@@ -1,118 +1,144 @@
+const Database = require('better-sqlite3');
 const { createItem } = require('../models/item');
 
 /**
- * In-memory storage for canonical items.
- * Enforces deduplication, ordering, and capacity limits.
+ * Persistent storage for canonical items using SQLite.
+ * Satisfies the Store contract with transactional durability.
  */
 class Store {
-  constructor(maxItems = 500) {
+  constructor(maxItems = 500, options = {}) {
     this.maxItems = maxItems;
-    this.items = [];
-    this.seen = new Set();
+    this.dbPath = options.dbPath || ':memory:';
+    this.db = new Database(this.dbPath);
     this.listeners = [];
     this.scorer = null;
     this.alertsEngine = null;
+
+    this.init();
   }
 
-  /**
-   * Optional scoring engine injection.
-   */
+  init() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS feed_items (
+        id TEXT PRIMARY KEY,
+        sourceType TEXT,
+        sourceName TEXT,
+        title TEXT,
+        body TEXT,
+        url TEXT,
+        publishedAt TEXT,
+        ingestedAt TEXT,
+        priority INTEGER,
+        alerts TEXT,
+        symbols TEXT,
+        topics TEXT,
+        raw TEXT
+      )
+    `);
+  }
+
   setScorer(engine) {
     this.scorer = engine;
   }
 
-  /**
-   * Optional alerts engine injection.
-   */
   setAlertsEngine(engine) {
     this.alertsEngine = engine;
   }
 
   /**
    * Adds a single item to the store.
-   * Returns true if the item was added, false if it was a duplicate.
+   * Returns true if newly committed, false if duplicate or failed.
    */
   add(item) {
-    if (!item.id || this.seen.has(item.id)) return false;
+    if (!item.id) return false;
 
-    // Apply scoring if engine is present
-    let finalItem = this.scorer ? this.scorer.score(item) : item;
+    // Always normalize to ensure canonical defaults (ingestedAt, etc)
+    let finalItem = createItem(item);
 
-    // Apply alerts if engine is present
+    // Apply scoring/alerts if present
+    finalItem = this.scorer ? this.scorer.score(finalItem) : finalItem;
     if (this.alertsEngine) {
       const matches = this.alertsEngine.evaluate(finalItem);
       if (matches.length > 0) {
-        // Create new item with alerts attached
         finalItem = createItem({ ...finalItem, alerts: matches, raw: finalItem.raw });
       }
     }
 
-    this.seen.add(finalItem.id);
+    const stmt = this.db.prepare(`
+      INSERT OR IGNORE INTO feed_items (
+        id, sourceType, sourceName, title, body, url, 
+        publishedAt, ingestedAt, priority, alerts, symbols, topics, raw
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-    // Insert in reverse-chronological order (newest first)
-    const idx = this.items.findIndex(i => i.publishedAt <= finalItem.publishedAt);
-    if (idx === -1) {
-      this.items.push(finalItem);
-    } else {
-      this.items.splice(idx, 0, finalItem);
+    const result = stmt.run(
+      finalItem.id,
+      finalItem.sourceType,
+      finalItem.sourceName,
+      finalItem.title,
+      finalItem.body,
+      finalItem.url,
+      finalItem.publishedAt.toISOString(),
+      finalItem.ingestedAt.toISOString(),
+      finalItem.priority,
+      JSON.stringify(finalItem.alerts),
+      JSON.stringify(finalItem.symbols),
+      JSON.stringify(finalItem.topics),
+      JSON.stringify(finalItem.raw)
+    );
+
+    if (result.changes > 0) {
+      // Basic eviction to satisfy existing contract
+      const count = this.db.prepare('SELECT COUNT(*) as count FROM feed_items').get().count;
+      if (count > this.maxItems) {
+        const oldest = this.db.prepare('SELECT id FROM feed_items ORDER BY publishedAt ASC, id ASC LIMIT 1').get();
+        this.db.prepare('DELETE FROM feed_items WHERE id = ?').run(oldest.id);
+      }
+
+      this.notify(finalItem);
+      return true;
     }
 
-    // Enforce capacity
-    if (this.items.length > this.maxItems) {
-      const removed = this.items.pop();
-      this.seen.delete(removed.id);
-    }
-
-    this.notify(finalItem);
-    return true;
+    return false;
   }
 
   /**
-   * Batch adds multiple items.
-   */
-  addMany(items) {
-    if (!Array.isArray(items)) return 0;
-    let addedCount = 0;
-    items.forEach(item => {
-      if (this.add(item)) addedCount++;
-    });
-    return addedCount;
-  }
-
-  /**
-   * Returns all items.
+   * Returns all items in reverse-chronological order.
    */
   getAll() {
-    return [...this.items];
+    const rows = this.db.prepare('SELECT * FROM feed_items ORDER BY publishedAt DESC, id DESC').all();
+    return rows.map(row => this.rowToItem(row));
   }
 
   /**
-   * Returns all items ranked by priority then by publishedAt.
+   * Returns all items ranked by priority.
    */
   getRanked() {
-    return [...this.items].sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority;
-      return b.publishedAt - a.publishedAt;
-    });
+    const rows = this.db.prepare('SELECT * FROM feed_items ORDER BY priority DESC, publishedAt DESC, id DESC').all();
+    return rows.map(row => this.rowToItem(row));
   }
 
   /**
-   * Filters items by source type (e.g., 'rss', 'hn').
+   * Placeholder for future milestones
    */
+  addMany(items) {
+    let count = 0;
+    for (const item of items) {
+      if (this.add(item)) count++;
+    }
+    return count;
+  }
+
   filterBySourceType(type) {
-    return this.items.filter(item => item.sourceType === type);
+    const rows = this.db.prepare('SELECT * FROM feed_items WHERE sourceType = ? ORDER BY publishedAt DESC, id DESC').all(type);
+    return rows.map(row => this.rowToItem(row));
   }
 
-  /**
-   * Filters items by source name (e.g., 'BBC News').
-   */
   filterBySourceName(name) {
-    return this.items.filter(item => item.sourceName === name);
+    const rows = this.db.prepare('SELECT * FROM feed_items WHERE sourceName = ? ORDER BY publishedAt DESC, id DESC').all(name);
+    return rows.map(row => this.rowToItem(row));
   }
 
-  /**
-   * Subscribe to new items.
-   */
   onNew(fn) {
     this.listeners.push(fn);
     return () => {
@@ -123,6 +149,18 @@ class Store {
   notify(item) {
     this.listeners.forEach(fn => {
       try { fn(item); } catch (e) { /* silent fail */ }
+    });
+  }
+
+  rowToItem(row) {
+    return createItem({
+      ...row,
+      publishedAt: new Date(row.publishedAt),
+      ingestedAt: new Date(row.ingestedAt),
+      alerts: JSON.parse(row.alerts),
+      symbols: JSON.parse(row.symbols),
+      topics: JSON.parse(row.topics),
+      raw: JSON.parse(row.raw)
     });
   }
 }
